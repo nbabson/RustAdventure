@@ -4,11 +4,21 @@
 
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused_imports)]
 
 mod util;
 use util::*; 
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::io::{self, Write, BufRead};
+
+
+fn make_dictionary() -> HashSet<&'static str> {
+    let dict: HashSet<&str> = [ "go", "n", "north", "hat", "fedora", "crystal", "ball",
+                 "s", "south", "w", "west", ].iter().cloned().collect();
+    dict    
+}
+
 
 fn make_game_objects(objects: &mut HashMap<String, Item>) {
      let hat: Item = Item::new("hat".to_string(), "old fedora".to_string(), 2.0);
@@ -72,13 +82,93 @@ fn player_has_object() {
     assert_eq!(true, p.inventory.contains(&ball));
 }
 
+// This function contains various failed attempts to put vector of strings into lowercase
+// and not lose ownership of it. These will be cleaned up. 
+fn get_command<'a,'b>(player: &'a mut Player, dictionary: HashSet<&str>) -> Vec<String> {
+    let stdin = io::stdin();
+    let mut success = false;
+    //let mut words: Vec<&str> = Vec::new();
+
+    while !success { 
+        success = true;
+        if player.turns < 5 {
+            print!("What would you like to do? ");
+        }
+        else {
+            print!("> ");
+        }
+        io::stdout().flush().ok().unwrap();
+        let command = stdin.lock().lines().next().unwrap().unwrap();
+        //let words: Vec<&str> = command.split(' ').map(|x| x.to_lowercase()).map(|x| x.as_str()).collect();
+        //let mut words: Vec<&str> = command.split(' ').collect();
+        //let words: Vec<&str>  = command.split(' ').collect();
+        //let words: Vec<String> = command.split(' ').collect::<Vec<&str>>().
+        //              iter().map(|x| x.to_string()).to_lowercase().collect();
+        let words: Vec<String> = command.split(' ').collect::<Vec<&str>>().
+                      iter().map(|x| x.to_lowercase()).collect();
+        //words.iter().map(|x| x.to_lowercase());
+        //let lowercase_words = for w in words { w.to_lowercase(); };
+        //for w in words {
+        //  let lowercase_words = w.to_lowercase();
+        //} 
+        let len = words.len();
+        if len == 1 && words[0] == "" {
+            println!("I didn't catch that.");
+            success = false;
+        }
+        else {
+        /*    for w in words {
+                match dictionary.contains(&w) {
+                    false   => { success = false;
+                                 println!("Sorry I don't know the word {}.", w); }
+                    _       => {}
+                }
+            }*/
+            for i in 0..len {
+                if !dictionary.contains(words[i].as_str()) {
+                    success = false;
+                    println!("Sorry I don't know the word {}.", words[i]);
+                }
+            }
+        }
+        if success { return words; }
+    } 
+    player.turns += 1;    
+    vec!["Error".to_string()]
+}
+
+
+fn play_game(mut world: Vec<Location>, mut player: Player, location_index: usize, dictionary: HashSet<&str>) ->usize {
+    println!("\n{}\n", world[location_index].name);
+    
+    if !world[location_index].visited {
+        println!("{}", world[location_index].description);
+    }
+    world[location_index].visited = true;
+    for item in &world[location_index].items {
+        print!("There is a");
+        match item.name.char_indices().next().unwrap() {
+            (0, 'a') | (0, 'e') | (0, 'i') | (0, 'o') | (0, 'u') => { print!("n"); },
+             _                          => {},
+        }       
+        println!(" {} here.", item.name);
+    }
+    // Command is an unparsed vector of legal game words
+    let command: Vec<String> = get_command(&mut player, dictionary);
+
+    // Next room
+    0
+}
+
 fn main() {
     let mut world: Vec<Location> = Vec::new(); 
     let mut objects: HashMap<String, Item> = HashMap::new();
+    let dictionary: HashSet<&str> = make_dictionary();
     make_game_objects(&mut objects);
     make_world(&mut world, &mut objects);
     let player = make_player(&mut objects);
 
-    let l: Location;
-    //test();
+    let next_location = play_game(world, player, 0, dictionary); 
+
 }
+

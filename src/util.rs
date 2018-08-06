@@ -2,6 +2,8 @@
 *  August 2018
 */
 
+use std::collections::HashSet;
+
 #[derive(Debug)]
 pub enum Direction {
     N, S, E, W, NE, SE, NW, SW, }
@@ -59,12 +61,13 @@ pub struct Player {
     pub name: String,
     pub inventory: Vec<Item>,
     pub score: i32,
+    pub turns: i32,
 }
 
 
 impl Player {
     pub fn new(n: String, i: Vec<Item>) -> Player {
-        Player { name: n, inventory: i, score: 0 }
+        Player { name: n, inventory: i, score: 0, turns:0 }
     }
 }    
 
