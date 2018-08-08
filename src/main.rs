@@ -5,6 +5,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 #![allow(unused_imports)]
+#![allow(unused_mut)]
 
 mod util;
 use util::*; 
@@ -84,10 +85,9 @@ fn player_has_object() {
 
 // This function contains various failed attempts to put vector of strings into lowercase
 // and not lose ownership of it. These will be cleaned up. 
-fn get_command<'a,'b>(player: &'a mut Player, dictionary: HashSet<&str>) -> Vec<String> {
+fn get_command<'a,'b>(player: &'a mut Player, dictionary: &HashSet<&str>) -> Vec<String> {
     let stdin = io::stdin();
     let mut success = false;
-    //let mut words: Vec<&str> = Vec::new();
 
     while !success { 
         success = true;
@@ -99,31 +99,14 @@ fn get_command<'a,'b>(player: &'a mut Player, dictionary: HashSet<&str>) -> Vec<
         }
         io::stdout().flush().ok().unwrap();
         let command = stdin.lock().lines().next().unwrap().unwrap();
-        //let words: Vec<&str> = command.split(' ').map(|x| x.to_lowercase()).map(|x| x.as_str()).collect();
-        //let mut words: Vec<&str> = command.split(' ').collect();
-        //let words: Vec<&str>  = command.split(' ').collect();
-        //let words: Vec<String> = command.split(' ').collect::<Vec<&str>>().
-        //              iter().map(|x| x.to_string()).to_lowercase().collect();
         let words: Vec<String> = command.split(' ').collect::<Vec<&str>>().
                       iter().map(|x| x.to_lowercase()).collect();
-        //words.iter().map(|x| x.to_lowercase());
-        //let lowercase_words = for w in words { w.to_lowercase(); };
-        //for w in words {
-        //  let lowercase_words = w.to_lowercase();
-        //} 
         let len = words.len();
         if len == 1 && words[0] == "" {
             println!("I didn't catch that.");
             success = false;
         }
         else {
-        /*    for w in words {
-                match dictionary.contains(&w) {
-                    false   => { success = false;
-                                 println!("Sorry I don't know the word {}.", w); }
-                    _       => {}
-                }
-            }*/
             for i in 0..len {
                 if !dictionary.contains(words[i].as_str()) {
                     success = false;
@@ -131,16 +114,23 @@ fn get_command<'a,'b>(player: &'a mut Player, dictionary: HashSet<&str>) -> Vec<
                 }
             }
         }
-        if success { return words; }
+        if  success {
+                player.turns += 1;    
+                return words; }
     } 
-    player.turns += 1;    
     vec!["Error".to_string()]
 }
 
 
-fn play_game(mut world: Vec<Location>, mut player: Player, location_index: usize, dictionary: HashSet<&str>) ->usize {
+fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>, 
+        mut player: &mut Player, location_index: usize) -> usize {
+
+    0
+}
+
+fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_index: usize, dictionary: &HashSet<&str>) ->usize {
     println!("\n{}\n", world[location_index].name);
-    
+    let mut next_location = location_index;
     if !world[location_index].visited {
         println!("{}", world[location_index].description);
     }
@@ -149,15 +139,17 @@ fn play_game(mut world: Vec<Location>, mut player: Player, location_index: usize
         print!("There is a");
         match item.name.char_indices().next().unwrap() {
             (0, 'a') | (0, 'e') | (0, 'i') | (0, 'o') | (0, 'u') => { print!("n"); },
-             _                          => {},
+             _                                                   => {},
         }       
         println!(" {} here.", item.name);
     }
-    // Command is an unparsed vector of legal game words
-    let command: Vec<String> = get_command(&mut player, dictionary);
-
-    // Next room
-    0
+    while next_location == location_index {
+        println!("\n{}\n", world[location_index].name);
+        // Command is an unparsed vector of legal game words
+        let command: Vec<String> = get_command(&mut player, &dictionary);
+        next_location = parse_command(command, &mut world, &mut player, location_index);
+    }
+    next_location
 }
 
 fn main() {
@@ -166,9 +158,9 @@ fn main() {
     let dictionary: HashSet<&str> = make_dictionary();
     make_game_objects(&mut objects);
     make_world(&mut world, &mut objects);
-    let player = make_player(&mut objects);
+    let mut player = make_player(&mut objects);
 
-    let next_location = play_game(world, player, 0, dictionary); 
+    let next_location = play_game(&mut world, &mut  player, 0, &dictionary); 
 
 }
 

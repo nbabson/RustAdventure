@@ -64,7 +64,6 @@ pub struct Player {
     pub turns: i32,
 }
 
-
 impl Player {
     pub fn new(n: String, i: Vec<Item>) -> Player {
         Player { name: n, inventory: i, score: 0, turns:0 }

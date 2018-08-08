@@ -1,0 +1,6 @@
+[package]
+name = "rust_adventure"
+version = "0.1.0"
+authors = ["Neil Babson <nbabson@pdx.edu>"]
+
+[dependencies]
