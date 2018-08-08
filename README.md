@@ -1,11 +1,12 @@
-## RustAdventure
+# RustAdventure
 Neil Babson August 2018
 
 Simple text adventure in the Rust language
 
-# Running the code
+## Running the code
 
 `cargo run`
-#Testing the code
+
+##Testing the code
 
 `cargo test`
