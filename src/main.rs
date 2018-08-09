@@ -13,11 +13,12 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::{self, Write, BufRead};
 use std::process::exit;
+use util::Direction::*;
 
 fn make_dictionary() -> HashSet<&'static str> {
     let dict: HashSet<&str> = [ "q", "quit", "go", "hat", "fedora", "crystal", "ball",
-                 "s", "south", "w", "west", "e", "east", "n", "north", "i", "inventory",
-                 "score"].iter().cloned().collect();
+                 "s", "south", "w", "west", "e", "east", "n", "north", "ne", "nw", "se",
+                 "sw", "inventory", "l", "look", "the", "score"].iter().cloned().collect();
     dict    
 }
 
@@ -45,8 +46,8 @@ fn make_world(world: &mut Vec<Location>, objects: &mut HashMap<String, Item>) {
     let mut items: Vec<Item> = Vec::new();
     items.push(objects.remove("hat").unwrap()); 
     let mut exits: Vec<Exit> = Vec::new();
-    exits.push(Exit::new("A low archway to the south".to_string(), 1, Direction::S));
-    exits.push(Exit::new("A ladder in the northeast corner".to_string(), 2, Direction::NE)); 
+    exits.push(Exit::new("a low archway to the south".to_string(), 1, Direction::S, false));
+    exits.push(Exit::new("a ladder in the northeast corner".to_string(), 2, Direction::NE, false)); 
     world.push(Location::new(0, "Leafy Courtyard".to_string(), 
                  "This pleasant courtyard is enclosed by vine covered brick walls and contains ".to_string() +
                  "a gaily splashing fountain at its center.", items, false, exits)); 
@@ -142,18 +143,6 @@ fn quit(player: &Player) {
     }
 }
 
-fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>, 
-        mut player: &mut Player, location_index: usize) -> usize {
-
-    match command[0].as_str() {
-        "q" | "quit"          => { quit(player) },
-        "score"               => { score(player) },
-        "i" | "inventory"     => { inventory(player) },
-         _                    => {},
-    }  
-    location_index
-}
-
 fn inventory(player: &Player) {
     if player.inventory.len() == 0 {
         println!("You have no items.");
@@ -166,13 +155,50 @@ fn inventory(player: &Player) {
     }
 }
 
-fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_index: usize, dictionary: &HashSet<&str>) ->usize {
-    println!("\n{}\n", world[location_index].name);
-    let mut next_location = location_index;
-    if !world[location_index].visited {
-        println!("{}", world[location_index].description);
+fn try_to_move(world: &Vec<Location>, dir: Direction, old_location: usize) -> usize {
+
+    let mut exit_exists: bool = false;
+    for loc in world {
+        for exit in &loc.exits {
+            if dir == exit.direction {
+                if exit.locked {  println!("That exit is locked."); }
+                else { return exit.goes_to; }
+                exit_exists = true;
+            }
+        }
     }
-    world[location_index].visited = true;
+    if !exit_exists { println!("You can't go that way."); }
+    old_location
+}
+
+fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>, 
+        mut player: &mut Player, location_index: usize) -> usize {
+
+    let mut command_index = 0;
+    let mut new_location = location_index;
+    while command[command_index] == "the" || command[command_index] == "go" {
+        command_index += 1;
+    }
+    match command[command_index].as_str() {
+        "q" | "quit"          => { quit(player); },
+        "score"               => { score(player); },
+        "i" | "inventory"     => { inventory(player); },
+        "l" | "look"          => { look(world, location_index); }, // check for look at
+        "n" | "north"         => { new_location = try_to_move(world, N, location_index); },
+        "s" | "south"         => { new_location = try_to_move(world, S, location_index); },
+        "w" | "west"          => { new_location = try_to_move(world, W, location_index); },
+        "e" | "east"          => { new_location = try_to_move(world, E, location_index); },
+        "ne"                  => { new_location = try_to_move(world, NE, location_index); },
+        "se"                  => { new_location = try_to_move(world, SE, location_index); },
+        "nw"                  => { new_location = try_to_move(world, NW, location_index); },
+        "sw"                  => { new_location = try_to_move(world, SW, location_index); },
+         _                    => {},
+    }  
+    new_location
+}
+
+fn look(world: &Vec<Location>, location_index: usize) {
+    println!("\n{}", world[location_index].description);
     for item in &world[location_index].items {
         print!("There is a");
         match item.name.char_indices().next().unwrap() {
@@ -181,8 +207,20 @@ fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_in
         }       
         println!(" {} here.", item.name);
     }
+    for exit in &world[location_index].exits {
+        println!("You see {}.", exit.description);
+    }
+}
+
+fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_index: usize, dictionary: &HashSet<&str>) ->usize {
+    println!("\n{}\n", world[location_index].name);
+    let mut next_location = location_index;
+    if !world[location_index].visited {
+        look(world, location_index);
+        world[location_index].visited = true;
+    }
     while next_location == location_index {
-        println!("\n{}\n", world[location_index].name);
+        //println!("\n{}\n", world[location_index].name);
         // Command is an unparsed vector of legal game words
         let command: Vec<String> = get_command(&mut player, &dictionary);
         next_location = parse_command(command, &mut world, &mut player, location_index);

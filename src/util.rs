@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Direction {
     N, S, E, W, NE, SE, NW, SW, }
 
@@ -44,15 +44,16 @@ impl Item {
 
 #[derive(Debug)]
 pub struct Exit {
-    description: String,
-    goes_to: usize,    
-    direction: Direction,
+    pub description: String,
+    pub goes_to: usize,    
+    pub direction: Direction,
+    pub locked: bool,
     //goes_to: &'a Location,
 }                 
 
 impl Exit {
-    pub fn new(d: String, g: usize, dir: Direction) -> Exit {
-        Exit { description: d, goes_to: g, direction: dir}
+    pub fn new(d: String, g: usize, dir: Direction, lock: bool) -> Exit {
+        Exit { description: d, goes_to: g, direction: dir, locked: lock}
     }
 }
 
