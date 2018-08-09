@@ -12,11 +12,12 @@ use util::*;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::{self, Write, BufRead};
-
+use std::process::exit;
 
 fn make_dictionary() -> HashSet<&'static str> {
-    let dict: HashSet<&str> = [ "go", "n", "north", "hat", "fedora", "crystal", "ball",
-                 "s", "south", "w", "west", ].iter().cloned().collect();
+    let dict: HashSet<&str> = [ "q", "quit", "go", "hat", "fedora", "crystal", "ball",
+                 "s", "south", "w", "west", "e", "east", "n", "north", "i", "inventory",
+                 "score"].iter().cloned().collect();
     dict    
 }
 
@@ -76,15 +77,14 @@ fn make_player(objects: &mut HashMap<String, Item>) -> Player {
 fn player_has_object() {
     let mut o: HashMap<String, Item> = HashMap::new();
     make_game_objects(&mut o);
-    let p = make_player(&mut o);
-    println!("Test name");
-    io::stdout().flush().ok().unwrap();
+    let name = "Test".to_string();
+    let mut starting_inventory: Vec<Item> = Vec::new();
+    starting_inventory.push(o.remove("crystal ball").unwrap());
+    let p = Player::new(name, starting_inventory);
     let ball: Item = Item::new("crystal ball".to_string(), "grapefruit sized sparkling crystalline orb".to_string(), 6.5);
     assert_eq!(true, p.inventory.contains(&ball));
 }
 
-// This function contains various failed attempts to put vector of strings into lowercase
-// and not lose ownership of it. These will be cleaned up. 
 fn get_command<'a,'b>(player: &'a mut Player, dictionary: &HashSet<&str>) -> Vec<String> {
     let stdin = io::stdin();
     let mut success = false;
@@ -121,11 +121,49 @@ fn get_command<'a,'b>(player: &'a mut Player, dictionary: &HashSet<&str>) -> Vec
     vec!["Error".to_string()]
 }
 
+fn score(player: &Player) {
+    print!("\nYour score is {} points after {} ", player.score, player.turns);
+    if player.score > 1 { println!("turns."); }
+    else { println!("turn."); }
+    let rank = match player.score {
+        0...10 => "beginner".to_string(),
+        _     => "expert".to_string(),
+    };    
+    println!("Your rank is {}.", rank);    
+}
+
+fn quit(player: &Player) {
+    let stdin = io::stdin();
+    println!("Are you sure you want to quit? ('no' to continue)");     
+    let answer = stdin.lock().lines().next().unwrap().unwrap();
+    if answer.trim() != "no".to_string() {
+        score(player);
+        exit(0);
+    }
+}
 
 fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>, 
         mut player: &mut Player, location_index: usize) -> usize {
 
-    0
+    match command[0].as_str() {
+        "q" | "quit"          => { quit(player) },
+        "score"               => { score(player) },
+        "i" | "inventory"     => { inventory(player) },
+         _                    => {},
+    }  
+    location_index
+}
+
+fn inventory(player: &Player) {
+    if player.inventory.len() == 0 {
+        println!("You have no items.");
+    }
+    else {
+        println!("You are carrying the following items");
+        for item in &player.inventory {
+            println!("\t{}", item.name);
+        }
+    }
 }
 
 fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_index: usize, dictionary: &HashSet<&str>) ->usize {
