@@ -7,6 +7,6 @@ Simple text adventure in the Rust language
 
 `cargo run`
 
-##Testing the code
+## Testing the code
 
 `cargo test`
