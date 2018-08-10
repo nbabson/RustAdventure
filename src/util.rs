@@ -3,6 +3,7 @@
 */
 
 use std::collections::HashSet;
+//use std::iter::Enumerate;
 
 #[derive(Debug, PartialEq)]
 pub enum Direction {
