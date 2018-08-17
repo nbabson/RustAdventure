@@ -29,7 +29,8 @@ fn make_dictionary() -> HashSet<&'static str> {
                  "s", "south", "w", "west", "e", "east", "n", "north", "ne", "nw", "se",
                  "sw", "i", "inventory", "l", "look", "the", "score", "at", "in", "get", "take",
                  "northeast", "northwest", "southeast", "southwest", "d", "drop", "up", "down",
-                 "laptop", "key", "birds", "nest", "climb", "ladder", "statue", "unlock", "grate",].iter().cloned().collect();
+                 "laptop", "key", "birds", "nest", "climb", "ladder", "statue", "unlock", "grate",
+                 "with", "egg", "beater",].iter().cloned().collect();
     dict    
 }
 
@@ -105,8 +106,9 @@ fn score(player: &Player) {
     if player.score > 1 { println!("turns."); }
     else { println!("turn."); }
     let rank = match player.score {
-        0...10   => "beginner".to_string(),
-        11...50  => "junior adventurer".to_string(),  
+        0...10    => "beginner".to_string(),
+        11...50   => "junior adventurer".to_string(),  
+        51...100  => "intrepid investigator".to_string(),
         _     => "expert".to_string(),
     };    
     println!("Your rank is {}.", rank);    
@@ -156,11 +158,12 @@ fn try_to_move(world: &Vec<Location>, dir: Direction, old_location: usize) -> us
 
 /// Print a help message explaining how to play
 fn help() {
-    let message = "\nRustAdventure accepts natural language user inputs and parses them to allow the player to explore".to_string() +
-        " the game world. You can move around the game with commands like 'go to the north' or simply 'n'. You can find out about your " +
-        "surroundings with the command 'look' or 'l'. To find out about an object you could say 'look at the hat', or just 'l hat'. " +
-        "'Inventory' ('i') will list the objects being carried and can check your score with the 'score' command. " + 
-        "Use the 'dictionary' command for a list of known words. " +
+    let message = "\nRustAdventure accepts natural language user inputs and parses them to allow the player\nto explore".to_string() +
+        " the game world. You can move around the game with commands like 'go to the north' or simply 'n', \n'climb up " + 
+        "the ladder' or 'climb ladder' or 'up'. You can find out about your "  +
+        "surroundings \nwith the command 'look' or 'l'. To find out about an object you could say 'look at the hat', or just 'l hat'.\n" +
+        "'Inventory' ('i') will list the objects being carried and you can check your score with the 'score'\ncommand. " + 
+        "Use the 'dictionary' command for a list of known words.\n" +
         "Traveling into an undeveloped region of the game will lead to a featureless room with no exits.";
     println!("{}\n", message);
 }
@@ -207,9 +210,41 @@ fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>,
     new_location
 }
 
-
-
+/// Try to unlock an exit, which requires possession of the correct key.
 fn unlock(mut world: &mut Vec<Location>, location: usize, command: Vec<String>, mut command_index: usize, mut player: &mut Player) {
+    command_index += 1;
+    if command_index == command.len() {
+        println!("Unlock what?");
+        return;
+    }
+    if command[command_index] == "the" { command_index += 1;}
+    if location == 4 && command_index < command.len() && command[command_index] == "grate" {
+        command_index += 1;
+        if command_index == command.len() || command[command_index] != "with" {
+            println!("Unlock grate with what?");
+            return;
+        }
+        command_index += 1;
+        if command_index < command.len() && command[command_index] == "the" { command_index += 1;}
+        if command_index < command.len() && command[command_index] == "key" {
+            for item in &player.inventory {
+                if item.name  == "key" && item.visibility == Seen {
+                    println!("The grate is unlocked.");
+                    world[4].exits[2].locked = false;
+                    world[4].exits[2].description = "an open grate revealing a wooden ladder which descends into ".to_string() +
+                           "darkness from which issues the sound of dripping water"; 
+                    println!("You see {}.", world[4].exits[2].description);
+                    player.score += 30;
+                    return;
+                }
+            }
+            println!("I don't see a key here.");
+            return;
+        }
+        println!("I can't unlock it with that.");
+        return;
+    }
+    println!("I couldn't unlock that.");
 }
 
 /// Try to climb to a different location. If direction (up or down) is not specified go on the direction possible for
@@ -460,8 +495,8 @@ fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_in
         if !player.events[0] && player_has(player, "statue") {
             print!("Moving the statue reveals ");
             player.events[0] = true;
-            let new_exit = Exit::new("a round grating in the cobbled path with a keyhole in its center andthe sound ".to_string() +
-                    "of dripping water emenating from beneath", 0, D, true);
+            let new_exit = Exit::new("a round grate in the cobbled path with a keyhole in its center and the sound ".to_string() +
+                    "of dripping water emenating from beneath", 5, D, true);
             println!("{}.\n", new_exit.description);
             world[location_index].exits.push(new_exit);
             player.score += 20;

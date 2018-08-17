@@ -20,6 +20,8 @@ pub fn make_game_objects(objects: &mut HashMap<String, Item>) {
                  + "twigs and straw containing fragments of light blue shell", 1.0, Some("key".to_string()), Visible));
      objects.insert("statue".to_string(), Item::new("statue".to_string(), "a small energetic statue depicting two ".to_string() +
                  "horned beetles locked in combat", MAX_WEIGHT, None, Visible));
+     objects.insert("egg beater".to_string(), Item::new("egg beater".to_string(), "a somewhat rusty antique mechanical egg beater".to_string(),
+                 3.0, None, Visible));
 }
 
 /// Test whether objects have been seccessfully placed in object HashMap
@@ -78,6 +80,15 @@ pub fn make_world(world: &mut Vec<Location>, objects: &mut HashMap<String, Item>
     items.push(objects.remove("statue").unwrap());
     world.push(Location::new(4, "Promenade".to_string(), "A stately cobbled path processes between rows of stone ".to_string() +
                 "columns and weed choked ponds.", items, false, exits));
+    // # Damp Tunnel
+    items = Vec::new();
+    exits = Vec::new();
+    exits.push(Exit::new("a wooden ladder ascends to a bright circle above".to_string(), 4, U, false));
+    exits.push(Exit::new("to the east the tunnel extends into complete darkness".to_string(), 0, E, true));
+    exits.push(Exit::new("to the west the tunnel extends into complete darkenss".to_string(), 0, W, true));
+    items.push(objects.remove("egg beater").unwrap());
+    world.push(Location::new(5, "Damp Tunnel".to_string(), "This rough earthen tunnel is dimly lit from above and sparkles ".to_string() +
+                "with water seeping from its walls.", items, false, exits));
 }
 
 /// Test whether the hat was successfully placed in the starting Location
