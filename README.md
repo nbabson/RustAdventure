@@ -1,10 +1,10 @@
 # RustAdventure
 Neil Babson August 2018
 
+Simple text adventure in the Rust programming language
+
 ## License
 MIT
-
-Simple text adventure in the Rust language
 
 ## Running the code
 
