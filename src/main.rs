@@ -1,5 +1,8 @@
 /* Neil Babson
 *  August 2018
+*
+* Copyright 2018
+* MIT license
 */
 
 #![allow(dead_code)]
@@ -22,24 +25,26 @@ use std::process::Command;
 
 /// Create HashSet of words that are recognized by the game
 fn make_dictionary() -> HashSet<&'static str> {
-    let dict: HashSet<&str> = [ "q", "quit", "go", "hat", "fedora", "crystal", "ball",
+    let dict: HashSet<&str> = [ "q", "quit", "go", "help", "hat", "dictionary", "crystal", "ball",
                  "s", "south", "w", "west", "e", "east", "n", "north", "ne", "nw", "se",
                  "sw", "i", "inventory", "l", "look", "the", "score", "at", "in", "get", "take",
                  "northeast", "northwest", "southeast", "southwest", "d", "drop", "up", "down",
-                 "laptop", "key", "birds", "nest", "climb", "ladder", "statue"].iter().cloned().collect();
+                 "laptop", "key", "birds", "nest", "climb", "ladder", "statue", "unlock", "grate",].iter().cloned().collect();
     dict    
 }
 
 /// Create a new game player
 fn make_player(objects: &mut HashMap<String, Item>) -> Player {
     Command::new("clear").status().unwrap(); //spawn().expect("");
-    print!("Welcome! What is your name? ");
+    let mut events: Vec<bool> = Vec::new();
+    events.push(false);
+    print!("Welcome to the RustAdventure text adventure game!\n What is your name? ");
     io::stdout().flush().ok().unwrap();
     let stdin = io::stdin();
     let name = stdin.lock().lines().next().unwrap().unwrap();
     let mut starting_inventory: Vec<Item> = Vec::new();
     starting_inventory.push(objects.remove("crystal ball").unwrap());
-    Player::new(name, starting_inventory)
+    Player::new(name, starting_inventory, events)
 }
 
 /// Test that player has been created and given starting inventory object
@@ -49,9 +54,10 @@ fn player_has_object() {
     make_game_objects(&mut o);
     let name = "Test".to_string();
     let mut starting_inventory: Vec<Item> = Vec::new();
+    let events: Vec<bool> = Vec::new();
     starting_inventory.push(o.remove("crystal ball").unwrap());
-    let p = Player::new(name, starting_inventory);
-    let ball: Item = Item::new("crystal ball".to_string(), "grapefruit sized sparkling crystalline orb".to_string(), 6.5);
+    let p = Player::new(name, starting_inventory, events);
+    let ball: Item = Item::new("crystal ball".to_string(), "a grapefruit sized sparkling crystalline orb".to_string(), 6.5, None, Visible);
     assert_eq!(true, p.inventory.contains(&ball));
 }
 
@@ -99,7 +105,8 @@ fn score(player: &Player) {
     if player.score > 1 { println!("turns."); }
     else { println!("turn."); }
     let rank = match player.score {
-        0...10 => "beginner".to_string(),
+        0...10   => "beginner".to_string(),
+        11...50  => "junior adventurer".to_string(),  
         _     => "expert".to_string(),
     };    
     println!("Your rank is {}.", rank);    
@@ -112,6 +119,7 @@ fn quit(player: &Player) {
     let answer = stdin.lock().lines().next().unwrap().unwrap();
     if answer.trim() != "no".to_string() {
         score(player);
+        println!("Thank you {} for playing.", player.name);
         exit(0);
     }
 }
@@ -124,7 +132,9 @@ fn inventory(player: &Player) {
     else {
         println!("You are carrying the following items:");
         for item in &player.inventory {
-            println!("\t{}", item.name);
+            if item.visibility == Visible {
+                println!("\t{}", item.name);
+            }
         }
     }
 }
@@ -144,9 +154,28 @@ fn try_to_move(world: &Vec<Location>, dir: Direction, old_location: usize) -> us
     old_location
 }
 
+/// Print a help message explaining how to play
+fn help() {
+    let message = "\nRustAdventure accepts natural language user inputs and parses them to allow the player to explore".to_string() +
+        " the game world. You can move around the game with commands like 'go to the north' or simply 'n'. You can find out about your " +
+        "surroundings with the command 'look' or 'l'. To find out about an object you could say 'look at the hat', or just 'l hat'. " +
+        "'Inventory' ('i') will list the objects being carried and can check your score with the 'score' command. " + 
+        "Use the 'dictionary' command for a list of known words. " +
+        "Traveling into an undeveloped region of the game will lead to a featureless room with no exits.";
+    println!("{}\n", message);
+}
+
+/// Print list of words recognized by the game
+fn print_dictionary(dict: &HashSet<&str>) {
+    for word in dict {
+        print!("{}\t", word);
+    }
+    println!()
+}
+
 /// Parse a vector of valid game words to try and interpret it as a valid game command.
 fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>, 
-        mut player: &mut Player, location_index: usize) -> usize {
+        mut player: &mut Player, location_index: usize, dictionary: &HashSet<&str>) -> usize {
     let mut command_index = 0;
     let mut new_location = location_index;
     while command[command_index] == "the" || command[command_index] == "go" {
@@ -156,6 +185,9 @@ fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>,
         "q" | "quit"          => { quit(player); },
         "score"               => { score(player); },
         "i" | "inventory"     => { inventory(player); },
+        "help"                => { help(); },
+        "dictionary"          => { print_dictionary(dictionary); },                    
+        "unlock"              => { unlock(world, location_index, command, command_index, player); },
         "l" | "look"          => { look(world, location_index, command, command_index, player); }, 
         "get" | "take"        => { get(world, location_index, command, command_index, player); },
         "d" | "drop"          => { drop(world, location_index, command, command_index, player); },
@@ -175,9 +207,14 @@ fn parse_command(command: Vec<String>, mut world: &mut Vec<Location>,
     new_location
 }
 
+
+
+fn unlock(mut world: &mut Vec<Location>, location: usize, command: Vec<String>, mut command_index: usize, mut player: &mut Player) {
+}
+
 /// Try to climb to a different location. If direction (up or down) is not specified go on the direction possible for
 /// climbable object (currently only ladder)
-fn climb(world: &Vec<Location>, old_location: usize, command: Vec<String>, mut command_index: usize) -> usize {
+fn climb(mut world: &mut Vec<Location>, old_location: usize, command: Vec<String>, mut command_index: usize) -> usize {
     command_index += 1;
     let mut new_location = old_location;
     let mut up_or_down = 0;
@@ -233,6 +270,15 @@ fn drop(mut world: &mut Vec<Location>, location_index: usize, command: Vec<Strin
         }
         if found {
             let object = player.inventory.remove(found_at);           
+            if object.contains != None {
+                for j in 0..player.inventory.len() {
+                    if &object.contains.as_ref().unwrap() == &(&player.inventory[j].name) {
+                        let contained_object = player.inventory.remove(j);
+                        player.weight -= contained_object.weight;
+                        world[location_index].items.push(contained_object);
+                    }
+                }
+            }
             world[location_index].items.push(object);
             return;
         } 
@@ -250,7 +296,7 @@ fn get(mut world: &mut Vec<Location>, location_index: usize, command: Vec<String
         let mut found_at: usize = 0; 
         for i in 0..world[location_index].items.len() {
             let mut item = &world[location_index].items[i];
-            if command.len() > command_index && command[command_index] == item.name {
+            if command.len() > command_index && command[command_index] == item.name && item.visibility != Hidden {
                 found = true;
                 found_at = i;
                 if player.weight + item.weight > MAX_WEIGHT {
@@ -258,10 +304,11 @@ fn get(mut world: &mut Vec<Location>, location_index: usize, command: Vec<String
                     return;
                 }
                 player.weight += item.weight;
+                player.score += 5;
                 println!("You take the {}.", item.name);
             }
             else if command.len() > command_index + 1 && (format!("{} {}", &command[command_index],&command[command_index + 1])
-                        == item.name) {
+                        == item.name) && item.visibility != Hidden {
                 found = true;
                 found_at = i;
                 if player.weight + item.weight > MAX_WEIGHT {
@@ -269,13 +316,24 @@ fn get(mut world: &mut Vec<Location>, location_index: usize, command: Vec<String
                     return;
                 }
                 player.weight += item.weight;
+                player.score += 5;
                 println!("You take the {}.", item.name);
             }
         }
         if found {
             let object = world[location_index].items.remove(found_at);
+            // get contained object
             if object.contains != None {
-               // get contained object
+                let mut l = world[location_index].items.len();
+                for j in 0..l {
+                    if &object.contains.as_ref().unwrap() == &(&world[location_index].items[j].name) {
+                        let contained_object = world[location_index].items.remove(j);
+                        player.weight += contained_object.weight;
+                        player.inventory.push(contained_object);
+                        break;
+                    }
+                }
+                
             }
             player.inventory.push(object);            
 
@@ -302,7 +360,7 @@ fn look(world: &Vec<Location>, location_index: usize, command: Vec<String>, mut 
     if command.len() <= command_index {
         println!("\n{}", world[location_index].description);
         for item in &world[location_index].items {
-            if item.visibility != Hidden {
+            if item.visibility == Visible {
                 print!("There is a");
                 match item.name.char_indices().next().unwrap() {
                     (0, 'a') | (0, 'e') | (0, 'i') | (0, 'o') | (0, 'u') => { print!("n"); },
@@ -317,6 +375,7 @@ fn look(world: &Vec<Location>, location_index: usize, command: Vec<String>, mut 
         println!();
     }
     else {
+        // look in an Item
         if command[command_index] == "in" {
             command_index += 1;
             if command_index < command.len() &&  command[command_index] == "the" { command_index += 1; }
@@ -328,26 +387,35 @@ fn look(world: &Vec<Location>, location_index: usize, command: Vec<String>, mut 
                 }
             }
             for i in 0..player.inventory.len() {
-                if player.inventory[i].contains != None {                   
-                     for j in 0..player.inventory.len() {
-                         if &player.inventory[i].contains.as_ref() == &Some(&player.inventory[j].name) {
-                              println!("There is a {} here.", player.inventory[j].name);
-                              println!("You see {}.", player.inventory[j].description);
-                              player.inventory[j].visibility = Seen;
-                              return;
-                          }
-                     }
+                if (command.len() > command_index && player.inventory[i].name == command[command_index]) ||
+                        (command.len() > command_index + 1 && (format!("{} {}", &command[command_index],&command[command_index+1]) == 
+                        player.inventory[i].name)) {                                       
+                    if player.inventory[i].contains != None {                   
+                         for j in 0..player.inventory.len() {
+                             if &player.inventory[i].contains.as_ref().unwrap() == &(&player.inventory[j].name) {
+                                 println!("There is a {} here.", player.inventory[j].name);
+                                 println!("You see {}.", player.inventory[j].description);
+                                 player.inventory[j].visibility = Seen;
+                                 return;
+                             }
+                         }
+                    }
+                    else { 
+                        println!("You can not look inside of that.");
+                        return;
+                    }
                 }
             }
             println!("You do not see that here.");
             return;
         }
+        // look at an Item
         else if command[command_index] == "at" { command_index += 1; }  
         if command_index < command.len() &&  command[command_index] == "the" { command_index += 1; }
         for item in &world[location_index].items {
-            if (command.len() > command_index && command[command_index] == item.name) ||
+            if ((command.len() > command_index && command[command_index] == item.name) ||
                         (command.len() > command_index + 1 && (format!("{} {}", &command[command_index],&command[command_index + 1])
-                        == item.name)) {
+                        == item.name))) && item.visibility != Hidden {
                 println!("You see {}.", item.description);
                 return;
             }
@@ -355,13 +423,23 @@ fn look(world: &Vec<Location>, location_index: usize, command: Vec<String>, mut 
         for item in &player.inventory {
             if (command.len() > command_index && command[command_index] == item.name) ||
                         (command.len() > command_index + 1 && (format!("{} {}", &command[command_index],&command[command_index + 1])
-                        == item.name)) {
+                        == item.name)) && item.visibility != Hidden {
                 println!("You see {}.", item.description);
                 return;
             }
         }
         println!("You do not see that here.");
     }    
+}
+
+/// Check whether the player is in possession of a certain item
+fn player_has(mut player: &mut Player, item: &str) -> bool {
+    for i in 0..player.inventory.len() {
+        if &player.inventory[i].name == item {
+            return true;
+        }
+    }
+    false
 }
 
 /// Display information about the current location.
@@ -377,7 +455,17 @@ fn play_game(mut world: &mut Vec<Location>, mut player: &mut Player, location_in
     while next_location == location_index {
         // Command is an unparsed vector of legal game words
         let command: Vec<String> = get_command(&mut player, &dictionary);
-        next_location = parse_command(command, &mut world, &mut player, location_index);
+        next_location = parse_command(command, &mut world, &mut player, location_index, dictionary);
+        // Trigger an event
+        if !player.events[0] && player_has(player, "statue") {
+            print!("Moving the statue reveals ");
+            player.events[0] = true;
+            let new_exit = Exit::new("a round grating in the cobbled path with a keyhole in its center andthe sound ".to_string() +
+                    "of dripping water emenating from beneath", 0, D, true);
+            println!("{}.\n", new_exit.description);
+            world[location_index].exits.push(new_exit);
+            player.score += 20;
+        }
     }
     next_location
 }
@@ -397,6 +485,5 @@ fn main() {
     loop {
         next_location = play_game(&mut world, &mut  player, next_location, &dictionary); 
     }
-
 }
 

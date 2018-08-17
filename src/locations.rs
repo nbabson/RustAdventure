@@ -18,7 +18,7 @@ pub fn make_game_objects(objects: &mut HashMap<String, Item>) {
                  0.5, None, Hidden));
      objects.insert("birds nest".to_string(), Item::new("birds nest".to_string(), "a small bowl of interwoven ".to_string()
                  + "twigs and straw containing fragments of light blue shell", 1.0, Some("key".to_string()), Visible));
-     objects.insert("statue".to_string(), Item::new("statue".to_string(), "an energetic statue depicting two ".to_string() +
+     objects.insert("statue".to_string(), Item::new("statue".to_string(), "a small energetic statue depicting two ".to_string() +
                  "horned beetles locked in combat", MAX_WEIGHT, None, Visible));
 }
 
@@ -29,7 +29,7 @@ fn insert_to_object_map() {
  make_game_objects(&mut objects);
  assert_eq!(true, objects.contains_key("hat"));
  let i = objects.get("hat").unwrap();
- assert_eq!(i.description, "old fedora".to_string());
+ assert_eq!(i.description, "a battered old fedora".to_string());
  let w = objects.get("crystal ball").unwrap();
  assert_eq!(6.5, w.weight);
 }
@@ -76,7 +76,7 @@ pub fn make_world(world: &mut Vec<Location>, objects: &mut HashMap<String, Item>
     exits.push(Exit::new("a brick archway to the north".to_string(), 1, N, false));
     exits.push(Exit::new("the path continuing to the south".to_string(), 0, S, false));
     items.push(objects.remove("statue").unwrap());
-    world.push(Location::new(4, "Promenade".to_string(), "A statly cobbled path processes between rows of stone ".to_string() +
+    world.push(Location::new(4, "Promenade".to_string(), "A stately cobbled path processes between rows of stone ".to_string() +
                 "columns and weed choked ponds.", items, false, exits));
 }
 
@@ -87,7 +87,7 @@ fn object_is_in_location() {
     let mut o: HashMap<String, Item> = HashMap::new();
     make_game_objects(&mut o);
     make_world(&mut w, &mut o);
-    let hat: Item = Item::new("hat".to_string(), "old fedora".to_string(), 2.0);
-    assert_eq!(true, w[0].items.contains(&hat));
+    let hat: Item = Item::new("hat".to_string(), "a battered old fedora".to_string(), 2.0, None, Visible);
+    assert_eq!(true, w[1].items.contains(&hat));
 }
 

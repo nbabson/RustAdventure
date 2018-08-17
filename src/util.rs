@@ -79,20 +79,23 @@ impl Exit {
 }
 
 /// A player has their inventory as vector of Items, current score, game turns played, and weight
-/// carried
+/// carried. A vector of boolean flags represent whether certain game events have occured yet.
 #[derive(Debug)]
 pub struct Player {
     pub name: String,
     pub inventory: Vec<Item>,
     pub score: i32,
     pub turns: i32,
-    pub weight: f32
+    pub weight: f32,
+    // Event 0: find grate under statue
+    pub events: Vec<bool>,
 }
 
 /// Implement a new Player
 impl Player {
-    pub fn new(n: String, i: Vec<Item>) -> Player {
-        Player { name: n, inventory: i, score: 0, turns:0, weight:0.0 }
+    pub fn new(n: String, i: Vec<Item>, e: Vec<bool>) -> Player {
+        // Player starts with crystal ball with weight 6.5
+        Player { name: n, inventory: i, score: 0, turns:0, weight:6.5, events: e }
     }
 }    
 
